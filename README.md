@@ -1,8 +1,7 @@
 # Income Expense App
-# SQLite
 
 โปรแกรมบันทึกรายรับรายจ่าย  
-พัฒนาโดย Java Swing + MySQL
+พัฒนาโดย Java Swing + SQLite
 
 ## Features
 - เพิ่มรายรับ
