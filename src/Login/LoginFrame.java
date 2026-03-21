@@ -516,7 +516,7 @@ public class LoginFrame extends javax.swing.JFrame {
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
                 DBConnect.initDatabase();
-                DBConnect.seedData();
+
                 new LoginFrame().setVisible(true);
             }
         });

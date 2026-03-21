@@ -239,19 +239,19 @@ public class AddAdminFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_btnSubmitActionPerformed
 
     private void txtUsersKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txtUsersKeyPressed
-         if(evt.getKeyCode() == KeyEvent.VK_ENTER){
-             registerAdmin();
+        if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+            registerAdmin();
         }
     }//GEN-LAST:event_txtUsersKeyPressed
 
     private void txtPassKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txtPassKeyPressed
-         if(evt.getKeyCode() == KeyEvent.VK_ENTER){
-             registerAdmin();
+        if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+            registerAdmin();
         }
     }//GEN-LAST:event_txtPassKeyPressed
     private void registerAdmin() {
 
-       String username = txtUsers.getText().trim();
+        String username = txtUsers.getText().trim();
         String password = new String(txtPass.getPassword());
 
         // 🔥 validate
@@ -289,11 +289,7 @@ public class AddAdminFrame extends javax.swing.JFrame {
                 return;
             }
 
-            // 🔐 hash password
-            String hash = org.mindrot.jbcrypt.BCrypt.hashpw(password,
-                    org.mindrot.jbcrypt.BCrypt.gensalt());
-
-            boolean success = dao.registerAdmin(username, hash);
+            boolean success = dao.registerAdmin(username, password);
 
             if (success) {
 

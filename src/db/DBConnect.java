@@ -111,7 +111,7 @@ public class DBConnect {
     /**
      * Test run
      */
-    public static void seedData() {
+   /* public static void seedData() {
 
         String checkSql = "SELECT COUNT(*) FROM income_expense";
 
@@ -159,5 +159,5 @@ public class DBConnect {
 
     public static void main(String[] args) {
         initDatabase();
-    }
+    }*/
 }

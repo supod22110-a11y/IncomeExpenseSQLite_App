@@ -462,7 +462,7 @@ public class IncomeExpenseFrame extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btnDeleteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnDeleteActionPerformed
-       deleteData();
+        deleteData();
 
     }//GEN-LAST:event_btnDeleteActionPerformed
 
@@ -619,7 +619,7 @@ public class IncomeExpenseFrame extends javax.swing.JFrame {
         totalIncome = 0;
         totalExpense = 0;
 
-        int year = jycYear.getYear() - 543; // ✅ FIX
+        int year = jycYear.getYear() - 543;
 
         int monthIndex = jcbbMonth.getSelectedIndex();
 
@@ -682,8 +682,6 @@ public class IncomeExpenseFrame extends javax.swing.JFrame {
             end = String.format("%04d-%02d-%02d", year, month, lastDay);
         }
 
-        System.out.println("Query start=" + start + ", end=" + end); // debug
-
         String sql = "SELECT id, record_date, type, category, amount, note "
                 + "FROM income_expense "
                 + "WHERE user_id=? AND date(record_date) BETWEEN date(?) AND date(?) "
@@ -710,7 +708,7 @@ public class IncomeExpenseFrame extends javax.swing.JFrame {
                     }
                 } catch (Exception ex) {
                     ex.printStackTrace();
-                    date = new Date(); // fallback
+                    date = new Date(); 
                 }
 
                 String type = rs.getString("type");
