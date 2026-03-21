@@ -34,7 +34,6 @@ import javax.swing.table.JTableHeader;
 import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.renderer.category.BarRenderer;
 
-
 public class MainFrame extends javax.swing.JFrame {
 
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(MainFrame.class.getName());
@@ -50,7 +49,7 @@ public class MainFrame extends javax.swing.JFrame {
             return;
         }
         initComponents();
-        
+
         checkRole();
         addWindowListener(new java.awt.event.WindowAdapter() {
             public void windowClosing(java.awt.event.WindowEvent e) {
@@ -501,7 +500,9 @@ public class MainFrame extends javax.swing.JFrame {
         if (comfirm == JOptionPane.YES_OPTION) {
             int year = JYear.getYear() - 543;
             String sql = "DELETE FROM income_expense "
-                    + "WHERE user_id=? AND YEAR(record_date)=? AND MONTH(record_date)=?";
+                    + "WHERE user_id=? "
+                    + "AND strftime('%Y', record_date)=? "
+                    + "AND strftime('%m', record_date)=?";
 
             try (Connection c = DBConnect.getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
                 ps.setInt(1, UserSession.getUserId());
@@ -559,25 +560,24 @@ public class MainFrame extends javax.swing.JFrame {
         int year = JYear.getYear() - 543;
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
 
-        //ใช้กับ Mysql
-        String sql
-                = "SELECT MONTH(record_date) AS m, "
+        String sql = "SELECT strftime('%m', record_date) AS m, "
                 + "SUM(CASE WHEN type='INCOME' THEN amount ELSE 0 END) AS income, "
                 + "SUM(CASE WHEN type='EXPENSE' THEN amount ELSE 0 END) AS expense "
                 + "FROM income_expense "
-                + "WHERE user_id=? AND YEAR(record_date)=? ";
+                + "WHERE user_id=? AND strftime('%Y', record_date)=? ";
 
         if (month != null) {
-            sql += " AND MONTH(record_date)=? ";
+            sql += " AND strftime('%m', record_date)=? ";
         }
-        sql += "GROUP BY MONTH(record_date) ORDER BY m";
+        sql += "GROUP BY strftime('%m', record_date) ORDER BY m";
 
         try (Connection c = DBConnect.getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
 
             ps.setInt(1, UserSession.getUserId());
-            ps.setInt(2, year);
+            ps.setString(2, String.valueOf(year));
+
             if (month != null) {
-                ps.setInt(3, month);
+                ps.setString(3, String.format("%02d", month));
             }
             ResultSet rs = ps.executeQuery();
 
@@ -625,28 +625,23 @@ public class MainFrame extends javax.swing.JFrame {
         DefaultTableModel model = (DefaultTableModel) JTableMain.getModel();
         model.setRowCount(0);
 
-        //ใช้กับ Mysql
-        String sql = "SELECT MONTH(record_date) AS m, "
+        String sql = "SELECT strftime('%m', record_date) AS m, "
                 + "SUM(CASE WHEN type='INCOME' THEN amount ELSE 0 END) AS income, "
                 + "SUM(CASE WHEN type='EXPENSE' THEN amount ELSE 0 END) AS expense "
                 + "FROM income_expense "
-                + "WHERE user_id=? AND YEAR(record_date)=? ";
+                + "WHERE user_id=? AND strftime('%Y', record_date)=? ";
 
         if (month != null) {
-            sql += " AND MONTH(record_date)=? ";
+            sql += " AND strftime('%m', record_date)=? ";
         }
-        sql += "GROUP BY MONTH(record_date) ORDER BY m";
-        //ใช้กับ SQLite
+
+        sql += "GROUP BY strftime('%m', record_date) ORDER BY m";
 
         try (Connection c = DBConnect.getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
 
-            //ใช้กับMysql
-            /*ps.setInt(1, UserSession.getUserId());
-            ps.setInt(2, year);
-            if (month != null) {
-                ps.setInt(3, month);*/
             ps.setInt(1, UserSession.getUserId());
             ps.setString(2, String.valueOf(year));
+
             if (month != null) {
                 ps.setString(3, String.format("%02d", month));
             }
@@ -685,34 +680,37 @@ public class MainFrame extends javax.swing.JFrame {
         Integer month = getSelectedMonth();
         int year = JYear.getYear() - 543;
 
-        String sql
-                = "SELECT "
-                + "SUM(CASE WHEN type='INCOME' THEN amount ELSE 0 END) AS total_income, "
-                + "SUM(CASE WHEN type='EXPENSE' THEN amount ELSE 0 END) AS total_expense "
+        String sql = "SELECT strftime('%m', record_date) AS m, "
+                + "SUM(CASE WHEN type='INCOME' THEN amount ELSE 0 END) AS income, "
+                + "SUM(CASE WHEN type='EXPENSE' THEN amount ELSE 0 END) AS expense "
                 + "FROM income_expense "
-                + "WHERE user_id=? AND YEAR(record_date)=?";
+                + "WHERE user_id=? AND strftime('%Y', record_date)=? ";
 
         if (month != null) {
-            sql += " AND MONTH(record_date)=? ";
+            sql += " AND strftime('%m', record_date)=? ";
         }
+        sql += "GROUP BY strftime('%m', record_date) ORDER BY m";
+
         try (Connection c = DBConnect.getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
 
             ps.setInt(1, UserSession.getUserId());
-            ps.setInt(2, year);
+            ps.setString(2, String.valueOf(year));
+
             if (month != null) {
-                ps.setInt(3, month);
+                ps.setString(3, String.format("%02d", month));
             }
             ResultSet rs = ps.executeQuery();
 
             if (rs.next()) {
-                double income = rs.getDouble("total_income");
-                double expense = rs.getDouble("total_expense");
+                double income = rs.getDouble("income");   // ✅ แก้ตรงนี้
+                double expense = rs.getDouble("expense"); // ✅ แก้ตรงนี้
                 double total = income - expense;
 
                 txtSumIncome.setText(String.format("%,.2f", income));
                 txtSumEx.setText(String.format("%,.2f", expense));
                 txtSumTotal.setText(String.format("%,.2f", total));
-
+                System.out.println("INCOME = " + income);
+                System.out.println("EXPENSE = " + expense);
                 if (total > 0) {
                     txtSumTotal.setForeground(new Color(0, 255, 120));
                 } else if (total < 0) {
@@ -724,7 +722,6 @@ public class MainFrame extends javax.swing.JFrame {
                     txtSumTotal.setForeground(Color.WHITE);
                 }
             }
-
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -18,6 +18,10 @@ import org.jfree.util.Rotation;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Calendar;
 import javax.swing.JLabel;
 import javax.swing.JTable;
@@ -33,7 +37,6 @@ import javax.swing.JOptionPane;
 import javax.swing.JSpinner;
 import javax.swing.JTextField;
 import report.ExportExcel;
-
 
 public class IncomeExpenseFrame extends javax.swing.JFrame {
 
@@ -56,14 +59,12 @@ public class IncomeExpenseFrame extends javax.swing.JFrame {
                         javax.swing.JOptionPane.YES_NO_OPTION
                 );
 
-                if (confirm == javax.swing.JOptionPane.YES_OPTION) {
-                    new Thread(() -> {
-                        BackupDatabase.backup();
-                    }).start();
-                    JOptionPane.showMessageDialog(null, "Backup สำเร็จ");
-                    UserSession.logout();
-                    System.exit(0);
+                if (confirm == JOptionPane.YES_OPTION) {
+                    new Thread(() -> BackupDatabase.backup()).start();
                 }
+
+                UserSession.logout();
+                System.exit(0);
 
             }
         });
@@ -461,7 +462,7 @@ public class IncomeExpenseFrame extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btnDeleteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnDeleteActionPerformed
-        deleteDate();
+       deleteData();
 
     }//GEN-LAST:event_btnDeleteActionPerformed
 
@@ -490,46 +491,44 @@ public class IncomeExpenseFrame extends javax.swing.JFrame {
 
     private void jtaTableMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jtaTableMouseClicked
         int viewRow = jtaTable.getSelectedRow();
-
         if (viewRow == -1) {
             return;
         }
 
-        // 🔥 แปลง view index → model index
+        // แปลง view index → model index
         int row = jtaTable.convertRowIndexToModel(viewRow);
 
-        // 🔥 วันที่
+        // โหลดวันที่
         Object dateObj = jtaTable.getModel().getValueAt(row, 1);
         if (dateObj instanceof java.util.Date) {
             jDate.setDate((java.util.Date) dateObj);
+        } else {
+            try {
+                jDate.setDate(new SimpleDateFormat("yyyy-MM-dd").parse(dateObj.toString()));
+            } catch (Exception e) {
+                jDate.setDate(new java.util.Date());
+            }
         }
 
-        selectedId = (int) jtaTable.getModel().getValueAt(row, 0);
-        System.out.println(
-                jtaTable.getModel().getValueAt(row, 0).getClass()
-        );
+        // 🔥 cast ID ปลอดภัย
+        selectedId = Integer.parseInt(jtaTable.getModel().getValueAt(row, 0).toString());
 
         // ประเภท
         String type = jtaTable.getModel().getValueAt(row, 2).toString();
-        if (type.equals("INCOME")) {
+        if ("INCOME".equalsIgnoreCase(type)) {
             jrbIncome.setSelected(true);
         } else {
             jrbExpense.setSelected(true);
         }
 
-        // category
+        // หมวดหมู่
         txtCate.setText(jtaTable.getModel().getValueAt(row, 3).toString());
 
-        // 🔥 amount (ปลอดภัยกว่า)
-        jforAmount.setText(
-                jtaTable.getModel().getValueAt(row, 4).toString()
-        );
+        // จำนวนเงิน
+        jforAmount.setText(jtaTable.getModel().getValueAt(row, 4).toString());
 
-        // note
-        txtAreaNote.setText(
-                jtaTable.getModel().getValueAt(row, 5).toString()
-        );
-
+        // หมายเหตุ
+        txtAreaNote.setText(jtaTable.getModel().getValueAt(row, 5).toString());
     }//GEN-LAST:event_jtaTableMouseClicked
 
     private void btnEditActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEditActionPerformed
@@ -620,34 +619,33 @@ public class IncomeExpenseFrame extends javax.swing.JFrame {
         totalIncome = 0;
         totalExpense = 0;
 
-        // ใช้กับ Mysql
-        int year = jycYear.getYear() - 543;
+        int year = jycYear.getYear() - 543; // ✅ FIX
 
         int monthIndex = jcbbMonth.getSelectedIndex();
 
-        // ใช้กับMysql
+        String start = year + "-01-01";
+        String end = year + "-12-31";
+
+        if (monthIndex != 0) {
+            Calendar cal = Calendar.getInstance();
+            cal.set(year, monthIndex - 1, 1);
+            int lastDay = cal.getActualMaximum(Calendar.DAY_OF_MONTH);
+
+            start = String.format("%04d-%02d-01", year, monthIndex);
+            end = String.format("%04d-%02d-%02d", year, monthIndex, lastDay);
+        }
+
         String sql = "SELECT "
                 + "SUM(CASE WHEN type='INCOME' THEN amount ELSE 0 END) AS income, "
                 + "SUM(CASE WHEN type='EXPENSE' THEN amount ELSE 0 END) AS expense "
                 + "FROM income_expense "
-                + "WHERE user_id=? AND YEAR(record_date)=? ";
-
-        if (monthIndex != 0) {
-            sql += " AND MONTH(record_date)=? ";
-
-        }
+                + "WHERE user_id=? AND date(record_date) BETWEEN date(?) AND date(?) ";
 
         try (Connection conn = DBConnect.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            int paramIndex = 1;
-
-            ps.setInt(paramIndex++, UserSession.getUserId());
-            ps.setInt(paramIndex++, year);
-
-            if (monthIndex != 0) {
-                ps.setInt(paramIndex++, monthIndex);
-
-            }
+            ps.setInt(1, UserSession.getUserId());
+            ps.setString(2, start);
+            ps.setString(3, end);
 
             ResultSet rs = ps.executeQuery();
 
@@ -663,71 +661,80 @@ public class IncomeExpenseFrame extends javax.swing.JFrame {
         return new double[]{totalIncome, totalExpense};
     }
 
-    public void loadTableData() {
+    private void loadTableData() {
         DefaultTableModel model = (DefaultTableModel) jtaTable.getModel();
-        model.setRowCount(0);
+        model.setRowCount(0); // ลบข้อมูลเก่า
 
-        System.out.println("LOAD USER ID = " + UserSession.getUserId());
-        // 🔹 Renderer สำหรับคอลัมน์วันที่
         int year = jycYear.getYear() - 543;
+        Integer month = jcbbMonth.getSelectedIndex() == 0 ? null : jcbbMonth.getSelectedIndex();
 
-        int monthIndex = jcbbMonth.getSelectedIndex();
+        String start;
+        String end;
 
-        //ใช้กับ Mysql
-        String sql = "SELECT id, record_date, type, category, amount, note "
-                + "FROM income_expense WHERE user_id=? AND YEAR(record_date)=? ";
-
-        if (monthIndex != 0) {
-            sql += " AND MONTH(record_date)=? ";
-
+        if (month == null) {
+            start = String.format("%04d-01-01", year);
+            end = String.format("%04d-12-31", year);
+        } else {
+            Calendar cal = Calendar.getInstance();
+            cal.set(year, month - 1, 1);
+            int lastDay = cal.getActualMaximum(Calendar.DAY_OF_MONTH);
+            start = String.format("%04d-%02d-01", year, month);
+            end = String.format("%04d-%02d-%02d", year, month, lastDay);
         }
 
-        sql += " ORDER BY record_date DESC";
+        System.out.println("Query start=" + start + ", end=" + end); // debug
+
+        String sql = "SELECT id, record_date, type, category, amount, note "
+                + "FROM income_expense "
+                + "WHERE user_id=? AND date(record_date) BETWEEN date(?) AND date(?) "
+                + "ORDER BY id ASC";
 
         try (Connection conn = DBConnect.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, UserSession.getUserId());
-            ps.setInt(2, year);
-
-            if (monthIndex != 0) {
-                ps.setInt(3, monthIndex);
-
-            }
+            ps.setString(2, start);
+            ps.setString(3, end);
 
             ResultSet rs = ps.executeQuery();
-
             while (rs.next()) {
+                int id = rs.getInt("id");
+                String dateStr = rs.getString("record_date");
+                Date date = null;
 
-                model.addRow(new Object[]{
-                    rs.getInt("id"),
-                    rs.getDate("record_date"),
-                    rs.getString("type"),
-                    rs.getString("category"),
-                    rs.getDouble("amount"),
-                    rs.getString("note")
-                });
+                try {
 
+                    if (dateStr.contains(" ")) {
+                        date = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(dateStr);
+                    } else {
+                        date = new SimpleDateFormat("yyyy-MM-dd").parse(dateStr);
+                    }
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    date = new Date(); // fallback
+                }
+
+                String type = rs.getString("type");
+                String category = rs.getString("category");
+                double amount = rs.getDouble("amount");
+                String note = rs.getString("note");
+
+                model.addRow(new Object[]{id, date, type, category, amount, note});
             }
 
-            // 🔹 ซ่อน id (ย้ายออกมานอก loop)
-            jtaTable.getColumnModel().getColumn(0).setMinWidth(0);
-            jtaTable.getColumnModel().getColumn(0).setMaxWidth(0);
+            // 🔥 รีเฟรช JTable ทันที
+            model.fireTableDataChanged();
 
         } catch (Exception e) {
             e.printStackTrace();
         }
-
     }
 
     private void addData() {
         Date utilDate = jDate.getDate();
         if (utilDate == null) {
-            JOptionPane.showMessageDialog(this, "รูปแบบวันที่ไม่ถูกต้อง (dd-MM-yyyy)");
+            JOptionPane.showMessageDialog(this, "กรุณาเลือกวันที่");
             return;
         }
-
-        System.out.println("INSERT USER ID = " + UserSession.getUserId());
-        java.sql.Date sqlDete = new java.sql.Date(utilDate.getTime());
 
         String type = jrbIncome.isSelected() ? "INCOME" : "EXPENSE";
         String category = txtCate.getText().trim();
@@ -738,25 +745,40 @@ public class IncomeExpenseFrame extends javax.swing.JFrame {
             JOptionPane.showMessageDialog(this, "กรุณากรอกให้ครบ");
             return;
         }
-        //ใช้กับ Mysql
-        double amount = Double.parseDouble(amountText);
+
+        double amount;
+        try {
+            amount = Double.parseDouble(amountText.replace(",", ""));
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "จำนวนเงินไม่ถูกต้อง");
+            return;
+        }
 
         String sql = "INSERT INTO income_expense "
-                + "(user_id, record_date, type, category, amount, note)"
-                + " VALUES (?, ?, ?, ?, ?, ?)";
+                + "(user_id, record_date, type, category, amount, note) "
+                + "VALUES (?, ?, ?, ?, ?, ?)";
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(utilDate);
+        int year = cal.get(Calendar.YEAR) - 543;
+        cal.set(Calendar.YEAR, year);
+        Date gcDate = cal.getTime();
 
         try (Connection conn = DBConnect.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, UserSession.getUserId());
-            ps.setDate(2, sqlDete);
+            ps.setString(2, sdf.format(gcDate));
             ps.setString(3, type);
             ps.setString(4, category);
             ps.setDouble(5, amount);
             ps.setString(6, note);
-            ps.executeUpdate();
 
+            ps.executeUpdate();
             JOptionPane.showMessageDialog(this, "บันทึกสำเร็จ");
 
+            // รีเฟรช table และ chart ทันที
             refreshAll();
             ClearForm();
 
@@ -765,18 +787,17 @@ public class IncomeExpenseFrame extends javax.swing.JFrame {
         }
     }
 
-    private void updateData() {
-
+    public void updateData() {
         if (selectedId == -1) {
-            JOptionPane.showMessageDialog(this, "กรุณาเลือกข้อมูลที่แก้ไข");
+            JOptionPane.showMessageDialog(this, "กรุณาเลือกข้อมูลที่ต้องการแก้ไข");
             return;
         }
-        Date utilDate = jDate.getDate();
+
+        java.util.Date utilDate = jDate.getDate();
         if (utilDate == null) {
             JOptionPane.showMessageDialog(this, "กรุณาเลือกวันที่");
             return;
         }
-        java.util.Date sqlDate = new java.sql.Date(utilDate.getTime());
 
         String type = jrbIncome.isSelected() ? "INCOME" : "EXPENSE";
         String category = txtCate.getText().trim();
@@ -784,56 +805,75 @@ public class IncomeExpenseFrame extends javax.swing.JFrame {
         String note = txtAreaNote.getText().trim();
 
         if (category.isEmpty() || amountText.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "กรุณากรอกข้อมูลให้ครบ");
+            JOptionPane.showMessageDialog(this, "กรุณากรอกให้ครบ");
             return;
         }
 
-        double amount = Double.parseDouble(amountText);
+        double amount;
+        try {
+            amount = Double.parseDouble(amountText.replace(",", ""));
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "จำนวนเงินไม่ถูกต้อง");
+            return;
+        }
 
-        String sql = "UPDATE income_expense SET "
-                + "record_date =?, type =?, category =?, amount =?, note =? "
-                + "WHERE id =?";
+        String sql = "UPDATE income_expense SET record_date=?, type=?, category=?, amount=?, note=? WHERE id=?";
 
         try (Connection conn = DBConnect.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setDate(1, (java.sql.Date) sqlDate);
+
+            // แปลง util.Date → yyyy-MM-dd
+            java.sql.Date sqlDate = new java.sql.Date(utilDate.getTime());
+
+            ps.setString(1, new SimpleDateFormat("yyyy-MM-dd").format(sqlDate));
             ps.setString(2, type);
             ps.setString(3, category);
             ps.setDouble(4, amount);
             ps.setString(5, note);
             ps.setInt(6, selectedId);
 
-            ps.executeUpdate();
-            JOptionPane.showMessageDialog(this, "แก้ไขสำเร็จ");
+            int rowsUpdated = ps.executeUpdate();
+            if (rowsUpdated > 0) {
+                JOptionPane.showMessageDialog(this, "อัปเดตเรียบร้อย");
+                refreshAll(); // รีเฟรช JTable + Chart
+                ClearForm();
+            }
 
-            refreshAll();
-            ClearForm();
-            selectedId = -1;
         } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "เกิดข้อผิดพลาด: " + e.getMessage());
         }
     }
 
-    private void deleteDate() {
+    private void deleteData() {
         if (selectedId == -1) {
-            JOptionPane.showMessageDialog(this, "กรุณาเลือกข้อมูลที่ต้อองการ");
+            JOptionPane.showMessageDialog(this, "กรุณาเลือกข้อมูลที่ต้องการลบ");
             return;
         }
 
-        int comfirm = JOptionPane.showConfirmDialog(this, "คุณต้องการลบข้อมูลหรือไม่", "ยืนยันการลบ", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-        if (comfirm != JOptionPane.YES_OPTION) {
+        int confirm = JOptionPane.showConfirmDialog(this, "คุณต้องการลบข้อมูลหรือไม่?", "ยืนยันการลบ", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        if (confirm != JOptionPane.YES_OPTION) {
             return;
         }
-        String sql = "DELETE FROM income_expense WHERE id=? ";
+
+        String sql = "DELETE FROM income_expense WHERE id=?";
 
         try (Connection conn = DBConnect.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
             ps.setInt(1, selectedId);
-            ps.executeUpdate();
+            int rows = ps.executeUpdate();
 
-            JOptionPane.showMessageDialog(this, "ลบสำเร็จ");
+            if (rows > 0) {
+                JOptionPane.showMessageDialog(this, "ลบสำเร็จ");
+                refreshAll();
+                ClearForm();
+                selectedId = -1;
+            } else {
+                JOptionPane.showMessageDialog(this, "ไม่พบข้อมูลที่จะลบ");
+            }
 
-            refreshAll();
-            ClearForm();
-            selectedId = -1;
-
+        } catch (java.sql.SQLException e) {
+            JOptionPane.showMessageDialog(this, "เกิดข้อผิดพลาด SQL: " + e.getMessage());
+            e.printStackTrace();
         } catch (Exception e) {
             e.printStackTrace();
         }

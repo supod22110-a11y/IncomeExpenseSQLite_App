@@ -1,46 +1,35 @@
 package db;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class BackupDatabase {
 
     public static void backup() {
+        String dbFilePath = "C:/Users/supod/MyAppDB/database.db"; // Path ของ SQLite ของคุณ
+        String date = new SimpleDateFormat("yyyy-MM-dd_HH-mm").format(new Date());
+        String backupFolder = "backup";
+        new File(backupFolder).mkdir();
 
-        try {
+        String backupFile = backupFolder + "/database_" + date + ".db";
 
-            String dbName = "userdb";
-            String user = "root";
-            String pass = "";
+        try (FileInputStream fis = new FileInputStream(dbFilePath); FileOutputStream fos = new FileOutputStream(backupFile)) {
 
-            String date = new SimpleDateFormat("yyyy-MM-dd_HH-mm").format(new Date());
-            String backupPath = "backup/" + dbName + "_" + date + ".sql";
-
-            new File("backup").mkdir();
-
-            ProcessBuilder pb;
-
-            if (pass.isEmpty()) {
-                pb = new ProcessBuilder("mysqldump", "-u" + user, dbName);
-            } else {
-                pb = new ProcessBuilder("mysqldump", "-u" + user, "-p" + pass, dbName);
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = fis.read(buffer)) > 0) {
+                fos.write(buffer, 0, length);
             }
 
-            pb.redirectOutput(new File(backupPath));
+            System.out.println("Backup Success: " + backupFile);
 
-            Process process = pb.start();
-
-            int result = process.waitFor();
-
-            if (result == 0) {
-                System.out.println("Backup Success");
-            } else {
-                System.out.println("Backup Failed");
-            }
-
-        } catch (Exception e) {
+        } catch (IOException e) {
             e.printStackTrace();
+            System.out.println("Backup Failed");
         }
     }
 }
