@@ -6,6 +6,7 @@ import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.data.category.DefaultCategoryDataset;
 import Login.LoginFrame;
+import Updater.Updater;
 import db.BackupDatabase;
 import db.DBConnect;
 import db.DatabaseSetup;
@@ -26,7 +27,6 @@ import java.awt.Component;
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
 import javax.swing.JTable;
-
 import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.JTableHeader;
@@ -49,7 +49,7 @@ public class MainFrame extends javax.swing.JFrame {
             return;
         }
         initComponents();
-
+        Updater.checkUpdate();
         checkRole();
         addWindowListener(new java.awt.event.WindowAdapter() {
             public void windowClosing(java.awt.event.WindowEvent e) {
