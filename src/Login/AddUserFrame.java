@@ -263,7 +263,7 @@ public class AddUserFrame extends javax.swing.JFrame {
             return;
         }
 
-        if (password.isEmpty()) {
+        if (password.isEmpty() || password.equals("Password")) {
             showMessage("กรุณากรอก Password", Color.RED);
             return;
         }

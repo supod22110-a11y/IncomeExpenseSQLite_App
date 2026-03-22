@@ -35,7 +35,6 @@ public class ExportExcel {
             XSSFSheet sheet = workbook.createSheet("Report");
 
             // ===== Style =====
-
             Font titleFont = workbook.createFont();
             titleFont.setFontHeightInPoints((short) 16);
             titleFont.setBold(true);
@@ -56,8 +55,12 @@ public class ExportExcel {
             DataFormat format = workbook.createDataFormat();
             moneyStyle.setDataFormat(format.getFormat("#,##0.00"));
 
-            // ===== Title =====
+            // ✅ Excel Date Style
+            CellStyle dateStyle = workbook.createCellStyle();
+            CreationHelper createHelper = workbook.getCreationHelper();
+            dateStyle.setDataFormat(createHelper.createDataFormat().getFormat("dd-MM-yyyy"));
 
+            // ===== Title =====
             Row titleRow = sheet.createRow(0);
             Cell titleCell = titleRow.createCell(0);
             titleCell.setCellValue("Income Expense Report");
@@ -70,7 +73,6 @@ public class ExportExcel {
                     .setCellValue("User : " + username);
 
             // ===== Header =====
-
             Row header = sheet.createRow(4);
 
             String[] columns = {"Date", "Type", "Category", "Amount", "Note"};
@@ -83,11 +85,6 @@ public class ExportExcel {
 
             }
 
-            // ===== Date Format =====
-
-            SimpleDateFormat thaiDate =
-                    new SimpleDateFormat("d-MM-yyyy", new Locale("th", "TH"));
-
             int rowNum = 5;
 
             double totalIncome = 0;
@@ -97,11 +94,22 @@ public class ExportExcel {
 
                 Row row = sheet.createRow(rowNum++);
 
-                java.util.Date date = rs.getDate("record_date");
+                String dateStr = rs.getString("record_date");
+
+                Cell dateCell = row.createCell(0);
+
+                try {
+                    java.util.Date date = new SimpleDateFormat("yyyy-MM-dd").parse(dateStr);
+                    dateCell.setCellValue(date);
+                    dateCell.setCellStyle(dateStyle);
+                } catch (Exception e) {
+                   
+                    dateCell.setCellValue(dateStr);
+                }
+
                 String type = rs.getString("type");
                 double amount = rs.getDouble("amount");
 
-                row.createCell(0).setCellValue(thaiDate.format(date));
                 row.createCell(1).setCellValue(type);
                 row.createCell(2).setCellValue(rs.getString("category"));
 
@@ -120,7 +128,6 @@ public class ExportExcel {
             }
 
             // ===== Summary =====
-
             int summaryRow = rowNum + 1;
 
             Row r1 = sheet.createRow(summaryRow);
@@ -136,18 +143,16 @@ public class ExportExcel {
             r3.createCell(3).setCellValue(totalIncome - totalExpense);
 
             // ===== Auto column =====
-
             for (int i = 0; i < columns.length; i++) {
                 sheet.autoSizeColumn(i);
             }
 
             // ===== Save file =====
-
             JFileChooser fileChooser = new JFileChooser();
             fileChooser.setDialogTitle("Save Excel Report");
 
-            FileNameExtensionFilter filter =
-                    new FileNameExtensionFilter("Excel File", "xlsx");
+            FileNameExtensionFilter filter
+                    = new FileNameExtensionFilter("Excel File", "xlsx");
 
             fileChooser.setFileFilter(filter);
 
@@ -155,8 +160,8 @@ public class ExportExcel {
 
             if (userSelection == JFileChooser.APPROVE_OPTION) {
 
-                String filePath =
-                        fileChooser.getSelectedFile().getAbsolutePath();
+                String filePath
+                        = fileChooser.getSelectedFile().getAbsolutePath();
 
                 if (!filePath.endsWith(".xlsx")) {
                     filePath += ".xlsx";
