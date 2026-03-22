@@ -7,13 +7,13 @@ import java.awt.Desktop;
 
 public class Updater {
 
-    private static final String CURRENT_VERSION = "1.0";
+    private static final String CURRENT_VERSION = "1.1";
 
    private static final String VERSION_URL =
 "https://raw.githubusercontent.com/supod22110-a11y/IncomeExpenseSQLite_App/main/version.txt";
 
 private static final String DOWNLOAD_URL =
-"https://raw.githubusercontent.com/supod22110-a11y/IncomeExpenseSQLite_App/main/IncomeExpenseSetup.exe";
+"https://raw.githubusercontent.com/supod22110-a11y/IncomeExpenseSQLite_App/main/Setup/IncomeExpenseSetup.exe";
 
     public static void checkUpdate() {
 
