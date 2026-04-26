@@ -48,27 +48,6 @@ public class IncomeExpenseFrame extends javax.swing.JFrame {
 
     public IncomeExpenseFrame() {
         initComponents();
-
-        addWindowListener(new java.awt.event.WindowAdapter() {
-            public void windowClosing(java.awt.event.WindowEvent e) {
-
-                int confirm = javax.swing.JOptionPane.showConfirmDialog(
-                        null,
-                        "ต้องการสำรองข้อมูล?",
-                        "Exit",
-                        javax.swing.JOptionPane.YES_NO_OPTION
-                );
-
-                if (confirm == JOptionPane.YES_OPTION) {
-                    new Thread(() -> BackupDatabase.backup()).start();
-                }
-
-                UserSession.logout();
-                System.exit(0);
-
-            }
-        });
-
         lblUser.setText(" " + UserSession.getUsername());
         jtaTable.setAutoCreateRowSorter(true);
         setLocationRelativeTo(null);
@@ -708,7 +687,7 @@ public class IncomeExpenseFrame extends javax.swing.JFrame {
                     }
                 } catch (Exception ex) {
                     ex.printStackTrace();
-                    date = new Date(); 
+                    date = new Date();
                 }
 
                 String type = rs.getString("type");

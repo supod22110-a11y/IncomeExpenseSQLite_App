@@ -49,29 +49,31 @@ public class MainFrame extends javax.swing.JFrame {
             return;
         }
         initComponents();
+        
         Updater.checkUpdate();
         checkRole();
-        addWindowListener(new java.awt.event.WindowAdapter() {
-            public void windowClosing(java.awt.event.WindowEvent e) {
+        
+          addWindowListener(new java.awt.event.WindowAdapter() {
+    public void windowClosing(java.awt.event.WindowEvent e) {
 
-                int confirm = javax.swing.JOptionPane.showConfirmDialog(
-                        null,
-                        "ต้องการสำรองข้อมูลไหม?",
-                        "Exit",
-                        javax.swing.JOptionPane.YES_NO_OPTION
-                );
+        // ❌ กันการปิดทันที
+        setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
 
-                if (confirm == javax.swing.JOptionPane.YES_OPTION) {
-                    new Thread(() -> {
-                        BackupDatabase.backup();
-                    }).start();
-                    JOptionPane.showMessageDialog(null, "Backup สำเร็จ");
-                    UserSession.logout();
-                    System.exit(0);
-                }
+        new Thread(() -> {
+            try {
+                System.out.println("กำลัง Backup อัตโนมัติ...");
+                BackupDatabase.backup();
 
+                UserSession.logout();
+
+            } finally {
+                // ✅ ปิดโปรแกรมหลัง backup เสร็จ
+                System.exit(0);
             }
-        });
+        }).start();
+    }
+});
+          
         lblUser.setText(" " + UserSession.getUsername());
         setLocationRelativeTo(null);
         System.out.println("MAIN username = " + UserSession.getUsername());
