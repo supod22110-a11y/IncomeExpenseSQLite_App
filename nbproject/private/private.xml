@@ -5,6 +5,8 @@
         <group>
             <file>file:/D:/JavaProject/IncomeExpenseSQLite_App/src/MainFrame/MainFrame.java</file>
             <file>file:/D:/JavaProject/IncomeExpenseSQLite_App/src/Update/Updater.java</file>
+            <file>file:/D:/JavaProject/IncomeExpenseSQLite_App/src/db/BackupDatabase.java</file>
+            <file>file:/D:/JavaProject/IncomeExpenseSQLite_App/src/MainFrame/IncomeExpenseFrame.java</file>
         </group>
     </open-files>
 </project-private>
