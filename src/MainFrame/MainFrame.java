@@ -6,7 +6,6 @@ import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.data.category.DefaultCategoryDataset;
 import Login.LoginFrame;
-import Updater.Updater;
 import db.BackupDatabase;
 import db.DBConnect;
 import db.DatabaseSetup;
@@ -33,6 +32,7 @@ import javax.swing.table.JTableHeader;
 
 import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.renderer.category.BarRenderer;
+import updater.Updater;
 
 public class MainFrame extends javax.swing.JFrame {
 
@@ -49,31 +49,31 @@ public class MainFrame extends javax.swing.JFrame {
             return;
         }
         initComponents();
-        
+
         Updater.checkUpdate();
         checkRole();
-        
-          addWindowListener(new java.awt.event.WindowAdapter() {
-    public void windowClosing(java.awt.event.WindowEvent e) {
 
-        // ❌ กันการปิดทันที
-        setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            public void windowClosing(java.awt.event.WindowEvent e) {
 
-        new Thread(() -> {
-            try {
-                System.out.println("กำลัง Backup อัตโนมัติ...");
-                BackupDatabase.backup();
+                // ❌ กันการปิดทันที
+                setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
 
-                UserSession.logout();
+                new Thread(() -> {
+                    try {
+                        System.out.println("กำลัง Backup อัตโนมัติ...");
+                        BackupDatabase.backup();
 
-            } finally {
-                // ✅ ปิดโปรแกรมหลัง backup เสร็จ
-                System.exit(0);
+                        UserSession.logout();
+
+                    } finally {
+                        // ✅ ปิดโปรแกรมหลัง backup เสร็จ
+                        System.exit(0);
+                    }
+                }).start();
             }
-        }).start();
-    }
-});
-          
+        });
+
         lblUser.setText(" " + UserSession.getUsername());
         setLocationRelativeTo(null);
         System.out.println("MAIN username = " + UserSession.getUsername());
