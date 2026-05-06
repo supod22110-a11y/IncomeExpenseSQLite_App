@@ -48,6 +48,8 @@ public class IncomeExpenseFrame extends javax.swing.JFrame {
 
     public IncomeExpenseFrame() {
         initComponents();
+        btnEdit.setEnabled(false);
+        btnDelete.setEnabled(false);
         lblUser.setText(" " + UserSession.getUsername());
         jtaTable.setAutoCreateRowSorter(true);
         setLocationRelativeTo(null);
@@ -55,6 +57,16 @@ public class IncomeExpenseFrame extends javax.swing.JFrame {
         setupDateChooser();
         setupTableStyle();
         refreshAll();
+
+        jtaTable.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+
+                boolean selected = jtaTable.getSelectedRow() != -1;
+
+                btnEdit.setEnabled(selected);
+                btnDelete.setEnabled(selected);
+            }
+        });
 
         // โหลดธีมที่เคยบันทึกไว้
     }
@@ -508,6 +520,9 @@ public class IncomeExpenseFrame extends javax.swing.JFrame {
 
         // หมายเหตุ
         txtAreaNote.setText(jtaTable.getModel().getValueAt(row, 5).toString());
+
+        btnEdit.setEnabled(true);
+        btnDelete.setEnabled(true);
     }//GEN-LAST:event_jtaTableMouseClicked
 
     private void btnEditActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEditActionPerformed
@@ -945,7 +960,7 @@ public class IncomeExpenseFrame extends javax.swing.JFrame {
 
         int day = cal.get(Calendar.DAY_OF_MONTH);
         int month = cal.get(Calendar.MONTH) + 1;
-        int year = cal.get(Calendar.YEAR);
+        int year = cal.get(Calendar.YEAR) + 543;
 
         return String.format("%02d-%02d-%04d", day, month, year);
     }
@@ -958,6 +973,9 @@ public class IncomeExpenseFrame extends javax.swing.JFrame {
         txtAreaNote.setText("");
         jrbIncome.setSelected(true);
         selectedId = -1; // อย่าลืม Reset ID ที่เลือกค้างไว้ด้วยครับ
+
+        btnEdit.setEnabled(false);
+        btnDelete.setEnabled(false);
 
     }
 

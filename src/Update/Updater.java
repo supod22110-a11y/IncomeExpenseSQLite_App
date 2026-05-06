@@ -9,7 +9,7 @@ import java.net.URLConnection;
 
 public class Updater {
 
-    private static final String CURRENT_VERSION = "1.3";
+    private static final String CURRENT_VERSION = "1.4";
 
     private static final String VERSION_URL =
             "https://raw.githubusercontent.com/supod22110-a11y/IncomeExpenseSQLite_App/main/version.txt";

@@ -429,18 +429,10 @@ public class MainFrame extends javax.swing.JFrame {
                 "Logout",
                 javax.swing.JOptionPane.YES_NO_OPTION
         );
-
-        if (confirm == javax.swing.JOptionPane.YES_OPTION) {
-            new Thread(() -> {
-                BackupDatabase.backup();
-            }).start();
-            JOptionPane.showMessageDialog(null, "Backup สำเร็จ");
-            session.UserSession.logout();
-
-            new Login.LoginFrame().setVisible(true);
-
-            this.dispose();
-        }
+        BackupDatabase.backup();
+        session.UserSession.logout();
+        new Login.LoginFrame().setVisible(true);
+        this.dispose();
 
     }//GEN-LAST:event_LaExitMouseClicked
 
